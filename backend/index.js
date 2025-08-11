@@ -1,8 +1,6 @@
 import express from "express"
 import dotenv from "dotenv"
 import cors from "cors"
-import path from "path"
-import { fileURLToPath } from "url"
 import { connectDB } from "./src/config/db.js"
 import { EventEmitter } from "events"
 
@@ -20,9 +18,24 @@ if (missingEnvVars.length > 0) {
 }
 
 // Increase event listener limit with explanation
-EventEmitter.defaultMaxListeners = 20 // Increased due to multiple route handlers
+EventEmitter.defaultMaxListeners = 20
 
-// Import Routes
+const app = express()
+
+// Middleware
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'https://pak-filler-front.vercel.app'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}
+app.use(cors(corsOptions))
+app.use(express.json({ limit: "50mb" }))
+app.use(express.urlencoded({ extended: true, limit: "50mb" }))
+
+// Database Connection
+connectDB()
+
+// Public API Routes
 import authRoutes from "./src/routes/auth.routes.js"
 import userRoutes from "./src/routes/user.routes.js"
 import taxRoutes from "./src/routes/tax.routes.js"
@@ -31,10 +44,7 @@ import personalInfoRouter from "./src/routes/personalInfo.routes.js"
 import incomeSourcesRoutes from "./src/routes/incomeSources.routes.js"
 import taxCreditRoutes from "./src/routes/taxCredits/taxCredits.routes.js"
 import taxFilingRoutes from "./src/routes/taxFilling/taxFiling.Routes.js"
-import filingStepsRoutes from "./src/routes/Filing/filingSteps.routes.js";
-
-
-
+import filingStepsRoutes from "./src/routes/Filing/filingSteps.routes.js"
 
 // Income Modules
 import agricultureRoutes from "./src/routes/incomeDetails/agriculture.routes.js"
@@ -49,7 +59,6 @@ import profitOnSavingsRoutes from "./src/routes/incomeDetails/profitOnSavings.ro
 import propertySaleIncomeRoutes from "./src/routes/incomeDetails/propertysale.routes.js"
 import rentRoutes from "./src/routes/incomeDetails/rent.routes.js"
 import salaryIncomeRoutes from "./src/routes/incomeDetails/salaryIncome.routes.js"
-
 import incomeSummaryRoute from "./src/routes/incomeDetails/incomeSummaryRoute.js"
 
 // Deductions
@@ -88,62 +97,41 @@ import businessIncorporationRoutes from "./src/routes/businessIncorporation/busi
 import gstRoutes from "./src/routes/gst/gst.routes.js"
 
 // Summary Routes
-// import incomeSummaryRoute from "./src/routes/incomeDetails/incomeSummaryRoute.js"
 import deductionRoutes from "./src/routes/deduction/deductionRoutes.js"
 import assetSummaryRoutes from "./src/routes/assetDetails/assetSummary.routes.js"
 import documentSummaryRoute from "./src/routes/documentSummary/documentRoutes.js"
-
 import serviceChargeRoutes from "./src/routes/ServiceCharge/serviceCharge.routes.js"
 
 // Admin Routes
 import adminDocumentRoutes from "./src/routes/admin/adminDocument.routes.js"
 import adminTaxFilingRoutes from "./src/routes/admin/adminTaxFiling.routes.js"
 
-// ✅ NEW: Comprehensive Data Routes
+// Comprehensive Data Routes
 import comprehensiveDataRoutes from "./src/routes/comprehensive/comprehensiveData.routes.js"
 import bulkOperationsRoutes from "./src/routes/comprehensive/bulkOperations.routes.js"
 import comprehensiveTaxFilingRoutes from "./src/routes/Filing/comprehensiveTaxFiling.routes.js"
-
 import wrapupRoutes from "./src/routes/wrapUp/wrapup.routes.js"
 import paymentProofRoutes from "./src/routes/payment/paymentProof.routes.js"
 
-// dotenv.config() already called at the top of the file
+// Serve Uploaded Files - REMOVED for Vercel deployment
+// The Vercel file system is read-only, so this middleware will fail.
+// You must use a cloud-based storage service for file uploads.
+// import { fileURLToPath } from "url"
+// import path from "path"
+// const __filename = fileURLToPath(import.meta.url)
+// const __dirname = path.dirname(__filename)
+// app.use("/uploads", express.static(path.join(__dirname, "src", "uploads")))
 
-const app = express()
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
-// Middleware
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'https://pak-filler-front.vercel.app'],
-  credentials: true,
-  optionsSuccessStatus: 200
-}
-app.use(cors(corsOptions))
-app.use(express.json({ limit: "50mb" })) // Increased limit for bulk operations
-app.use(express.urlencoded({ extended: true, limit: "50mb" }))
-
-// Database
-connectDB()
-
-// Serve Uploaded Files
-app.use("/uploads", express.static(path.join(__dirname, "src", "uploads")))
-
-// Public API Routes
+// Mount API Routes
 app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/service", serviceRoutes)
-
-// Tax
 app.use("/api/tax-filing", taxRoutes)
 app.use("/api/tax", taxFinalizationRoutes)
 app.use("/api/tax-credit", taxCreditRoutes)
-
-// Personal Info & Income Sources
 app.use("/api/personal-info", personalInfoRouter)
 app.use("/api/income-sources", incomeSourcesRoutes)
-
-// Income
 app.use("/api/income", agricultureRoutes)
 app.use("/api/income", businessIncomeRoutes)
 app.use("/api/income", commissionServiceIncomeRoutes)
@@ -156,16 +144,11 @@ app.use("/api/income", profitOnSavingsRoutes)
 app.use("/api/income", propertySaleIncomeRoutes)
 app.use("/api/income", rentRoutes)
 app.use("/api/income", salaryIncomeRoutes)
-
 app.use("/api/income", incomeSummaryRoute)
-
-// Deductions
 app.use("/api/deduction", bankTransactionRoutes)
 app.use("/api/deduction", vehicleDeductionRoutes)
 app.use("/api/deduction", utilityDeductionRoutes)
 app.use("/api/deduction", otherDeductionRoutes)
-
-// Assets
 app.use("/api/wealth", openingWealthRoutes)
 app.use("/api/wealth", assetSelectionRoutes)
 app.use("/api/assets", propertyAssetRoutes)
@@ -176,48 +159,27 @@ app.use("/api/assets", cashRoutes)
 app.use("/api/assets", possessionRoutes)
 app.use("/api/assets", foreignAssetRoutes)
 app.use("/api/assets", otherAssetRoutes)
-
-// Liabilities & Expenses
 app.use("/api/liabilities", bankLoanRoutes)
 app.use("/api/liabilities", otherLiabilityRoutes)
 app.use("/api/expense", expenseRoutes)
-
-// Family Tax Filing
 app.use("/api/family-account", familyRoutes)
-
-// IRIS and NTN
 app.use("/api/iris-profile", irisProfileRoutes)
 app.use("/api/ntn", ntnRoutes)
-
-// Business Incorporation
 app.use("/api/business-incorporation", businessIncorporationRoutes)
-
-// GST
 app.use("/api/gst", gstRoutes)
-
 app.use("/api/tax-filings", taxFilingRoutes)
-
-// Admin Routes
 app.use("/api/admin/documents", adminDocumentRoutes)
 app.use("/api/admin/tax-filings", adminTaxFilingRoutes)
-
-// Summary Routes
-// Income summary route already registered with other income routes above
 app.use("/api/deduction", deductionRoutes)
 app.use("/api/assets", assetSummaryRoutes)
 app.use("/api/documents", documentSummaryRoute)
-
 app.use("/api/service-charge", serviceChargeRoutes)
-
-// ✅ NEW: Comprehensive Data Management Routes
 app.use("/api/comprehensive", comprehensiveDataRoutes)
 app.use("/api/comprehensive/bulk", bulkOperationsRoutes)
-
 app.use("/api/wrapup", wrapupRoutes)
-
 app.use("/api/tax-filing/comprehensive", comprehensiveTaxFilingRoutes)
 app.use("/api/tax-filing", paymentProofRoutes)
-app.use("/api/filing-steps", filingStepsRoutes);
+app.use("/api/filing-steps", filingStepsRoutes)
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -225,12 +187,8 @@ app.get("/api/health", (req, res) => {
     success: true,
     message: "Server is running",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
   })
 })
 
-// Start Server
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`)
-})
+// Vercel deployment requires the Express app to be exported, not started with app.listen().
+export default app
