@@ -1,36 +1,23 @@
 import multer from 'multer';
 
-// Use memory storage to store files in a buffer instead of on the disk.
-// This is a crucial change for serverless platforms like Vercel, which have a read-only file system.
+// Use memory storage to store files in a buffer in the server's memory.
+// This prevents the application from trying to create a directory or write to the local file system.
 const storage = multer.memoryStorage();
 
-// Enhanced file filter for better security.
-// This checks the file's MIME type to ensure it's one of the allowed types.
+// You can still keep your file type checks and limits.
 const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'application/pdf'
-  ];
-
-  const mimeType = file.mimetype.toLowerCase();
-
-  if (allowedMimeTypes.includes(mimeType)) {
-    // If the file type is allowed, accept it.
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    // If the file type is not allowed, reject it with an error.
-    cb(new Error(`Unsupported file type. Only JPEG, PNG, and PDF files are allowed. Received: ${mimeType}`), false);
+    cb(new Error('Unsupported file type. Only JPEG, PNG, and PDF files are allowed.'), false);
   }
 };
 
-// Export the multer middleware with the updated configuration.
-export const upload = multer({
+export const paymentUpload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB file size limit
-    files: 5, // Limit to 5 files per request
+    fileSize: 5 * 1024 * 1024, // Example: 5MB file size limit
   },
 });
